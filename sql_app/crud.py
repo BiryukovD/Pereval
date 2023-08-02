@@ -1,10 +1,18 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sql_app import models
 from sql_app.schemas import Pereval
 
 
 async def create_pereval(db: AsyncSession, pereval: Pereval):
-    db_user = models.User(**pereval.user.dict())
+    db_user = await db.execute(select(models.User).where(models.User.email == pereval.user.email))
+
+    if not db_user.scalars().all():
+        db_user = models.User(**pereval.user.dict())
+    else:
+        db_user = await db.execute(select(models.User).where(models.User.email == pereval.user.email))
+        db_user = db_user.scalars().one()
+
     db_list_of_images = []
     for image in pereval.images:
         db_list_of_images.append(models.Image(image_url=str(image.image_url), title=image.title))
@@ -15,7 +23,6 @@ async def create_pereval(db: AsyncSession, pereval: Pereval):
         latitude=pereval.coords.latitude,
         longitude=pereval.coords.longitude,
         height=pereval.coords.height,
-        status=pereval.status,
         user=db_user,
         level=db_level,
         image=db_list_of_images

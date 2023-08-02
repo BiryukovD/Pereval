@@ -25,7 +25,7 @@ class Pereval(Base):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     height = Column(Integer, nullable=False)
-    status = Column(String(32))
+    status = Column(String(32), default='new')
     user_id = Column(ForeignKey('user.id'))
     level_id = Column(ForeignKey('level.id'))
 

@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import List, Optional
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from pydantic import BaseModel, EmailStr, Field, AnyHttpUrl
@@ -30,18 +29,10 @@ class Image(BaseModel):
     image_url: AnyHttpUrl
 
 
-class StatusType(str, Enum):
-    new = 'new'
-    pending = 'pending'
-    accepted = 'accepted'
-    rejected = 'rejected'
-
-
 class Pereval(BaseModel):
     title: str = Field(max_length=32)
     other_title: Optional[str] = Field(max_length=32)
     user: User
     coords: Coords
     level: Level
-    status: StatusType
     images: List[Image]
