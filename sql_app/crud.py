@@ -31,3 +31,24 @@ async def create_pereval(db: AsyncSession, pereval: Pereval):
     await db.commit()
     await db.refresh(db_pereval)
     return db_pereval
+
+
+async def get_pereval_by_id(db: AsyncSession, pereval_id: int):
+    db_pereval = await db.execute(
+        select(models.Pereval, models.User, models.Level).join(models.User).join(
+            models.Level).filter(models.Pereval.id == pereval_id))
+    db_images = await db.execute(select(models.Image).filter(models.Image.pereval_id == pereval_id))
+
+    for pereval, user, level in db_pereval:
+        return {
+            'title': pereval.title,
+            'other_title': pereval.other_title,
+            'add_time': pereval.add_time,
+            'latitude': pereval.latitude,
+            'longitude': pereval.longitude,
+            'height': pereval.height,
+            'user': user,
+            'level': level,
+            'images': db_images.scalars().all()
+
+        }

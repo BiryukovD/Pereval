@@ -36,3 +36,14 @@ class Pereval(BaseModel):
     coords: Coords
     level: Level
     images: List[Image]
+
+
+class PerevalOut(BaseModel):
+    title: str
+    other_title: Optional[str]
+    latitude: float
+    longitude: float
+    height: int
+    level: Level
+    user: User
+    images: List[Image]
