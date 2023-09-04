@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sql_app import models
 from sql_app.schemas import Pereval
@@ -44,11 +44,55 @@ async def get_pereval_by_id(db: AsyncSession, pereval_id: int):
             'title': pereval.title,
             'other_title': pereval.other_title,
             'add_time': pereval.add_time,
+            'status': pereval.status,
             'latitude': pereval.latitude,
             'longitude': pereval.longitude,
             'height': pereval.height,
             'user': user,
             'level': level,
             'images': db_images.scalars().all()
-
         }
+
+
+async def replace_pereval_by_id(db: AsyncSession, pereval_id, pereval):
+    if pereval.image != None:
+        lst_image_obj = []
+        for image in pereval.image:
+            lst_image_obj.append(models.Image(title=image.title, image_url=str(image.image_url), pereval_id=pereval_id))
+        stmt = delete(models.Image).where(models.Image.pereval_id == pereval_id)
+        await db.execute(stmt)
+        db.add_all(lst_image_obj)
+
+    pereval_dict = pereval.dict(exclude_none=True)
+    pereval_dict.pop('image')
+
+    if pereval.level != None:
+        db_pereval = await db.execute(
+            select(models.Pereval, models.Level).join(
+                models.Level).filter(models.Pereval.id == pereval_id))
+        db_pereval
+        stmt = delete(models.Level).where(models.Level == pereval_id)
+        await db.execute(stmt)
+
+        # query = select(models.Level).where(models.Level.id == )
+        # /wait db.execute()
+
+        pereval_dict['level'] = models.Level(winter=pereval.level.winter,
+                                             spring=pereval.level.spring,
+                                             summer=pereval.level.summer,
+                                             autumn=pereval.level.autumn
+                                             )
+
+    print(pereval_dict)
+
+    # stmt = update(models.Pereval).where(models.Pereval.id == pereval_id).values(
+    #     pereval_dict)
+    # await db.execute(stmt)
+    # await db.commit()
+    return 1
+
+
+async def get_perevals_by_email(db: AsyncSession, user_email):
+    db_perevals = await db.execute(
+        select(models.Pereval).where(models.Pereval.user.has(models.User.email == user_email)))
+    return db_perevals.scalars().all()

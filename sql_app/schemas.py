@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from pydantic import BaseModel, EmailStr, Field, AnyHttpUrl
@@ -41,9 +42,23 @@ class Pereval(BaseModel):
 class PerevalOut(BaseModel):
     title: str
     other_title: Optional[str]
+    status: str
+    add_time: datetime
     latitude: float
     longitude: float
     height: int
     level: Level
     user: User
     images: List[Image]
+
+class PerevalReplace(BaseModel):
+    title: Optional[str] = None
+    other_title: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    height: Optional[int] = None
+    level: Optional[Level] = None
+    image: Optional[List[Image]] = None
+
+
+
