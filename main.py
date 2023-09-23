@@ -24,7 +24,7 @@ async def submitData(pereval_id: int, db: AsyncSession = Depends(get_async_sessi
 @app.patch('/pereval/{pereval_id}')
 async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession = Depends(get_async_session)):
     db_pereval = await replace_pereval_by_id(db, pereval_id, pereval)
-    return 1
+    return db_pereval
 
 @app.get('/pereval/')
 async def submitData(user_email: str, db: AsyncSession = Depends(get_async_session)):

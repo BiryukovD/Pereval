@@ -1,5 +1,8 @@
+from fastapi import HTTPException
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import JSONResponse
+
 from sql_app import models
 from sql_app.schemas import Pereval
 
@@ -55,41 +58,39 @@ async def get_pereval_by_id(db: AsyncSession, pereval_id: int):
 
 
 async def replace_pereval_by_id(db: AsyncSession, pereval_id, pereval):
-    if pereval.image != None:
-        lst_image_obj = []
-        for image in pereval.image:
-            lst_image_obj.append(models.Image(title=image.title, image_url=str(image.image_url), pereval_id=pereval_id))
-        stmt = delete(models.Image).where(models.Image.pereval_id == pereval_id)
+    # Если превал имеет статус "new"  (запрос на получение перевала по id)
+    db_pereval = await db.execute(select(models.Pereval).filter(models.Pereval.id == pereval_id))
+    if db_pereval.scalars().one().status == 'new':
+        print('status new')
+        # Если отправляются картинки, удаляем все картинки добавленные раннее, и добавляем список новых
+        # Работает
+        if pereval.image != None:
+            lst_image_obj = []
+            for image in pereval.image:
+                lst_image_obj.append(
+                    models.Image(title=image.title, image_url=str(image.image_url), pereval_id=pereval_id))
+            stmt = delete(models.Image).where(models.Image.pereval_id == pereval_id)
+            await db.execute(stmt)
+            db.add_all(lst_image_obj)
+
+        pereval_dict = pereval.dict(exclude_none=True)
+        db_pereval = await db.execute(select(models.Pereval).filter(models.Pereval.id == pereval_id))
+
+        # Если отправляется level, обновляем level
+        if pereval.level != None:
+            stmt = update(models.Level).where(models.Level.id == db_pereval.scalars().one().level_id).values(
+                pereval_dict['level'])
+            await db.execute(stmt)
+
+        # Обновляем перевал
+        pereval_dict.pop('image')
+        pereval_dict.pop('level')
+        stmt = update(models.Pereval).where(models.Pereval.id == pereval_id).values(pereval_dict)
         await db.execute(stmt)
-        db.add_all(lst_image_obj)
-
-    pereval_dict = pereval.dict(exclude_none=True)
-    pereval_dict.pop('image')
-
-    if pereval.level != None:
-        db_pereval = await db.execute(
-            select(models.Pereval, models.Level).join(
-                models.Level).filter(models.Pereval.id == pereval_id))
-        db_pereval
-        stmt = delete(models.Level).where(models.Level == pereval_id)
-        await db.execute(stmt)
-
-        # query = select(models.Level).where(models.Level.id == )
-        # /wait db.execute()
-
-        pereval_dict['level'] = models.Level(winter=pereval.level.winter,
-                                             spring=pereval.level.spring,
-                                             summer=pereval.level.summer,
-                                             autumn=pereval.level.autumn
-                                             )
-
-    print(pereval_dict)
-
-    # stmt = update(models.Pereval).where(models.Pereval.id == pereval_id).values(
-    #     pereval_dict)
-    # await db.execute(stmt)
-    # await db.commit()
-    return 1
+        await db.commit()
+        return {"state": 1, "message": 'Pereval updated successfully!'}
+    else:
+        raise HTTPException(status_code=404, detail={'state': 0, "message": "Unable to update entry!"})
 
 
 async def get_perevals_by_email(db: AsyncSession, user_email):
