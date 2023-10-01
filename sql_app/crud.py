@@ -1,39 +1,32 @@
 from fastapi import HTTPException
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import JSONResponse
-
 from sql_app import models
 from sql_app.schemas import Pereval
 
-
 async def create_pereval(db: AsyncSession, pereval: Pereval):
-    db_user = await db.execute(select(models.User).where(models.User.email == pereval.user.email))
-
-    if not db_user.scalars().all():
-        db_user = models.User(**pereval.user.dict())
-    else:
-        db_user = await db.execute(select(models.User).where(models.User.email == pereval.user.email))
-        db_user = db_user.scalars().one()
+    result = await db.execute(select(models.User).where(models.User.email == pereval.user.email))
+    user = result.scalars().first()
+    if user is None:
+        user = models.User(**pereval.user.dict())
 
     db_list_of_images = []
     for image in pereval.images:
         db_list_of_images.append(models.Image(image_url=str(image.image_url), title=image.title))
-    db_level = models.Level(**pereval.level.dict())
-    db_pereval = models.Pereval(
+    level = models.Level(**pereval.level.dict())
+    pereval = models.Pereval(
         title=pereval.title,
         other_title=pereval.other_title,
         latitude=pereval.coords.latitude,
         longitude=pereval.coords.longitude,
         height=pereval.coords.height,
-        user=db_user,
-        level=db_level,
+        user=user,
+        level=level,
         image=db_list_of_images
     )
-    db.add(db_pereval)
+    db.add(pereval)
     await db.commit()
-    await db.refresh(db_pereval)
-    return db_pereval
+    return pereval
 
 
 async def get_pereval_by_id(db: AsyncSession, pereval_id: int):
@@ -58,12 +51,13 @@ async def get_pereval_by_id(db: AsyncSession, pereval_id: int):
 
 
 async def replace_pereval_by_id(db: AsyncSession, pereval_id, pereval):
-    # Если превал имеет статус "new"  (запрос на получение перевала по id)
-    db_pereval = await db.execute(select(models.Pereval).filter(models.Pereval.id == pereval_id))
-    if db_pereval.scalars().one().status == 'new':
-        print('status new')
+    result = await db.execute(select(models.Pereval).filter(models.Pereval.id == pereval_id))
+    db_pereval = result.scalars().first()
+
+    if db_pereval is None:
+        return None
+    if db_pereval.status == 'new':
         # Если отправляются картинки, удаляем все картинки добавленные раннее, и добавляем список новых
-        # Работает
         if pereval.image != None:
             lst_image_obj = []
             for image in pereval.image:
@@ -90,10 +84,14 @@ async def replace_pereval_by_id(db: AsyncSession, pereval_id, pereval):
         await db.commit()
         return {"state": 1, "message": 'Pereval updated successfully!'}
     else:
-        raise HTTPException(status_code=404, detail={'state': 0, "message": "Unable to update entry!"})
+        raise HTTPException(status_code=400,
+                            detail={'state': 0, "message": "Updating a pereval is possible only in new status!"})
 
 
 async def get_perevals_by_email(db: AsyncSession, user_email):
-    db_perevals = await db.execute(
+    result = await db.execute(
         select(models.Pereval).where(models.Pereval.user.has(models.User.email == user_email)))
-    return db_perevals.scalars().all()
+    db_perevals = result.scalars().all()
+    if not db_perevals:
+        return None
+    return db_perevals
