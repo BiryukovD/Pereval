@@ -11,7 +11,7 @@ class User(Base):
     fam = Column(String(32), nullable=False)
     otc = Column(String(32), nullable=False)
     email = Column(String(32), nullable=False, unique=True)
-    phone = Column(String(32), nullable=False, unique=True)
+    phone = Column(String(32), nullable=False)
 
     pereval = relationship('Pereval', back_populates='user')
 

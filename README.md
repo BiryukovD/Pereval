@@ -28,48 +28,85 @@ REST API содержит 4 метода для работы:
 | GET /pereval/                          | Получение перевалов по e-mail |
 | PATH /pereval/{pereval_id}             |  Изменение данных о перевале  |
 ### Создание перевала - POST /pereval/ 
-Запрос:
+Запрос (позитивный сценарий):
 
-<img src="https://i.ibb.co/PNQD3QJ/1.png" alt="1" border="0">
+![](images/POST_1.png)
 
-Ответ:
-
-<img src="https://i.ibb.co/0DF2tnN/3.png" alt="3" border="0">
-
-Запрос:
-
-<img src="https://i.ibb.co/KFKwZJW/4.png" alt="4" border="0">
 
 Ответ:
 
-<img src="https://i.ibb.co/9vBm5HQ/5.png" alt="5" border="0">
+![](images/POST_2.png)
+
+
+Запрос (позитивный сценарий):
+
+![](images/POST_3.png)
+
+Ответ:
+
+![](images/POST_4.png)
 
 ### Получение перевала по id - GET /pereval/{pereval_id}
-Запрос:
+Запрос (позитивный сценарий):
 
-<img src="https://i.ibb.co/g91BGc7/1.png" alt="1" border="0">
+![](images/GET_by_id_1.png)
+
 
 Ответ:
 
-<img src="https://i.ibb.co/k2z9jt4/2.png" alt="2" border="0">
+![](images/GET_by_id_2.png)
+
+Запрос данных несуществующего первала (негативный сценарий):
+
+![](images/GET_by_id_3.png)
+
+Ответ:
+
+![](images/GET_by_id_4.png)
 
 ### Получение перевалов по емайл - GET /pereval/   
-Запрос:
+Запрос (позитивный сценарий):
 
-<img src="https://i.ibb.co/R7kwQbR/2.png" alt="2" border="0">
+![](images/GET_by_email_1.png)
+
 
 Ответ:
 
-<img src="https://i.ibb.co/4JDj1nj/1.png" alt="1" border="0">
+![](images/GET_by_email_2.png)
+
+Запрос данных о перевалах несуществующего пользователя (негативный сценарий):
+
+![](images/GET_by_email_3.png)
+
+Ответ:
+
+![](images/GET_by_email_4.png)
 
 ### Изменение данных о перевале - PATH /pereval/{pereval_id} 
-Запрос:
+Запрос (позитивный сценарий):
 
-<img src="https://i.ibb.co/SBNrKZg/1.png" alt="1" border="0">
+![](images/PATCH_1.png)
+
 
 Ответ:
 
-<img src="https://i.ibb.co/T1fzxTH/2.png" alt="2" border="0">
+![](images/PATCH_2.png)
+
+Запрос на изменение данных несуществующего перевала (негативный сценарий):
+
+![](images/PATCH_3.png)
+
+Ответ:
+
+![](images/PATCH_4.png)
+
+Запрос на изменение данных перевала, который находится в статусе отличным от "new" (негативный сценарий):
+
+![](images/PATCH_5.png)
+
+Ответ:
+
+![](images/PATCH_6.png)
 
 
 
