@@ -1,14 +1,32 @@
 from logging.config import fileConfig
-
-from alembic import context
-
-from config import DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASS
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from alembic import context
 
+import os
+import sys
 
-from sql_app import models
-from sql_app.database import Base
+# sys.path.append(os.path.join(sys.path[0], 'src'))
+
+from src.config import DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASS
+from src.operations.models import Base as Base_app
+
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from sqlalchemy import Column, Integer, String
+
+for el, a in zip(sys.path, range(len(sys.path))):
+    print(f'{a + 1} {el}')
+
+# Base_app: DeclarativeMeta = declarative_base()
+#
+# class User(Base_app):
+#     __tablename__ = 'user'
+#     id = Column(Integer, primary_key=True)
+#     name = Column(String(32), nullable=False)
+#     fam = Column(String(32), nullable=False)
+#     otc = Column(String(32), nullable=False)
+#     email = Column(String(32), nullable=False, unique=True)
+#     phone = Column(String(32), nullable=False)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -28,7 +46,7 @@ fileConfig(config.config_file_name)
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-target_metadata = models.Base.metadata
+target_metadata = [Base_app.metadata]
 
 
 # other values from the config, defined by the needs of env.py,
@@ -87,3 +105,5 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
+

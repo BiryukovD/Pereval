@@ -1,8 +1,9 @@
 from datetime import datetime
 from sqlalchemy import Column, ForeignKey, Integer, String, Float, TIMESTAMP
 from sqlalchemy.orm import relationship
-from sql_app.database import Base
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 
+Base: DeclarativeMeta = declarative_base()
 
 class User(Base):
     __tablename__ = 'user'
