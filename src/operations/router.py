@@ -11,12 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from operations.models import User, Image, Level, Pereval
 from operations.schemas import Pereval as Pereval_Schema
 
-
-
 router = APIRouter(
     prefix="/operations",
     tags=["Operations"]
 )
+
 
 @router.post('/pereval/')
 async def submitData(pereval: Pereval_Schema, db: AsyncSession = Depends(get_async_session)):
@@ -70,10 +69,8 @@ async def submitData(pereval_id: int, db: AsyncSession = Depends(get_async_sessi
         }
 
 
-
 @router.patch('/pereval/{pereval_id}')
 async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession = Depends(get_async_session)):
-    # db_pereval = await replace_pereval_by_id(db, pereval_id, pereval)
     result = await db.execute(select(Pereval).filter(Pereval.id == pereval_id))
     db_pereval = result.scalars().first()
 
@@ -92,7 +89,6 @@ async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession 
             db.add_all(lst_image_obj)
 
         pereval_dict = pereval.dict(exclude_none=True)
-        # db_pereval = await db.execute(select(Pereval).filter(Pereval.id == pereval_id))
 
         # Если отправляется level, обновляем level
         if pereval.level != None:
@@ -113,23 +109,27 @@ async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession 
         raise HTTPException(status_code=400,
                             detail={'state': 0, "message": "Updating a pereval is possible only in new status!"})
 
+
 @router.get('/pereval/')
 async def submitData(user_email: str, db: AsyncSession = Depends(get_async_session)):
     result = await db.execute(
         select(Pereval, User, Level).join(User).join(
             Level).where(Pereval.user.has(User.email == user_email)))
-
     perevals = result.all()
 
+    if perevals == []:
+        raise HTTPException(status_code=400,
+                            detail={'state': 0, "message": "Not found user with this email"})
+
+    # все картинки добавленные пользователем
     result = await db.execute(
-        select(Image).where(Image.pereval.has(Pereval.user.has(User.email == user_email)))) # все картинки добавленные пользователем
+        select(Image).where(Image.pereval.has(Pereval.user.has(User.email == user_email))))
 
     images = result.scalars().all()
-
     perevals_out = []
 
     for pereval, user, level in perevals:
-            perevals_out.append({
+        perevals_out.append({
             'title': pereval.title,
             'other_title': pereval.other_title,
             'add_time': pereval.add_time,
@@ -142,4 +142,3 @@ async def submitData(user_email: str, db: AsyncSession = Depends(get_async_sessi
             'images': [image for image in images if image.pereval_id == pereval.id]
         })
     return perevals_out
-
