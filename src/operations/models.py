@@ -20,7 +20,7 @@ class User(Base):
 class Pereval(Base):
     __tablename__ = 'pereval'
     id = Column(Integer, primary_key=True)
-    title = Column(String(32), nullable=False)
+    title = Column(String(32), nullable=False, unique=True)
     other_title = Column(String(32), nullable=True)
     add_time = Column(TIMESTAMP, default=datetime.utcnow)
     latitude = Column(Float, nullable=False)
@@ -54,3 +54,12 @@ class Level(Base):
     spring = Column(String(2))
 
     pereval = relationship('Pereval', back_populates='level', uselist=False)
+
+
+class Car(Base):
+    __tablename__ = 'car'
+    id = Column(Integer, primary_key=True)
+    winter = Column(String(2))
+    summer = Column(String(2))
+
+

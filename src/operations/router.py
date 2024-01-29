@@ -1,15 +1,17 @@
 from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException
-from operations.crud import create_pereval, get_pereval_by_id, replace_pereval_by_id, get_perevals_by_email
 from operations.schemas import Pereval, PerevalOut, PerevalReplace
 from database import get_async_session
-
-from fastapi import HTTPException
+from tasks.tasks import send_email
+from fastapi import HTTPException,  BackgroundTasks
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from operations.models import User, Image, Level, Pereval
 from operations.schemas import Pereval as Pereval_Schema
+from fastapi_cache.decorator import cache
+
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(
     prefix="/operations",
@@ -17,33 +19,44 @@ router = APIRouter(
 )
 
 
+# @router.get('/long')
+# @cache(expire=30)
+# def long():
+#     time.sleep(3)
+#     return "Много данных!!!"
+
 @router.post('/pereval/')
 async def submitData(pereval: Pereval_Schema, db: AsyncSession = Depends(get_async_session)):
-    result = await db.execute(select(User).where(User.email == pereval.user.email))
-    user = result.scalars().first()
-    if user is None:
-        user = User(**pereval.user.dict())
-    db_list_of_images = []
-    for image in pereval.images:
-        db_list_of_images.append(Image(image_url=str(image.image_url), title=image.title))
-    level = Level(**pereval.level.dict())
-    pereval = Pereval(
-        title=pereval.title,
-        other_title=pereval.other_title,
-        latitude=pereval.coords.latitude,
-        longitude=pereval.coords.longitude,
-        height=pereval.coords.height,
-        user=user,
-        level=level,
-        image=db_list_of_images
-    )
-    db.add(pereval)
-    await db.commit()
-    return {"status": 200, "message": 'Pereval created successfully!', "id_pereval": pereval.id}
+    try:
+        result = await db.execute(select(User).where(User.email == pereval.user.email))
+        user = result.scalars().first()
+        if user is None:
+            user = User(**pereval.user.dict())
+        db_list_of_images = []
+        for image in pereval.images:
+            db_list_of_images.append(Image(image_url=str(image.image_url), title=image.title))
+        level = Level(**pereval.level.dict())
+        pereval = Pereval(
+            title=pereval.title,
+            other_title=pereval.other_title,
+            latitude=pereval.coords.latitude,
+            longitude=pereval.coords.longitude,
+            height=pereval.coords.height,
+            user=user,
+            level=level,
+            image=db_list_of_images
+        )
+        db.add(pereval)
+        await db.commit()
+        send_email.delay(pereval.user.name, pereval.user.email)
+        return {"status": 200, "message": 'Pereval created successfully!', "id_pereval": pereval.id}
+    except IntegrityError as exc:
+        raise HTTPException(status_code=400, detail=f'{exc}')
 
 
 @router.get('/pereval/{pereval_id}')
-async def submitData(pereval_id: int, db: AsyncSession = Depends(get_async_session)):
+@cache(expire=60)
+async def submitData(background_tasks: BackgroundTasks, pereval_id: int, db: AsyncSession = Depends(get_async_session)):
     db_pereval = await db.execute(
         select(Pereval, User, Level).join(User).join(
             Level).filter(Pereval.id == pereval_id))
@@ -111,6 +124,7 @@ async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession 
 
 
 @router.get('/pereval/')
+@cache(expire=60)
 async def submitData(user_email: str, db: AsyncSession = Depends(get_async_session)):
     result = await db.execute(
         select(Pereval, User, Level).join(User).join(
