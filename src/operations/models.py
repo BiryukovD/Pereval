@@ -1,9 +1,10 @@
 from datetime import datetime
 from sqlalchemy import Column, ForeignKey, Integer, String, Float, TIMESTAMP
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from sqlalchemy.orm import declarative_base
 
-Base: DeclarativeMeta = declarative_base()
+Base = declarative_base()
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -20,7 +21,7 @@ class User(Base):
 class Pereval(Base):
     __tablename__ = 'pereval'
     id = Column(Integer, primary_key=True)
-    title = Column(String(32), nullable=False, unique=True)
+    title = Column(String(32), nullable=False)
     other_title = Column(String(32), nullable=True)
     add_time = Column(TIMESTAMP, default=datetime.utcnow)
     latitude = Column(Float, nullable=False)
@@ -56,10 +57,6 @@ class Level(Base):
     pereval = relationship('Pereval', back_populates='level', uselist=False)
 
 
-class Car(Base):
-    __tablename__ = 'car'
-    id = Column(Integer, primary_key=True)
-    winter = Column(String(2))
-    summer = Column(String(2))
+
 
 

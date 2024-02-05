@@ -10,32 +10,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from operations.models import User, Image, Level, Pereval
 from operations.schemas import Pereval as Pereval_Schema
 from fastapi_cache.decorator import cache
-
 from sqlalchemy.exc import IntegrityError
 
+
 router = APIRouter(
-    prefix="/operations",
+    prefix="/perevals",
     tags=["Operations"]
 )
 
-
-# @router.get('/long')
-# @cache(expire=30)
-# def long():
-#     time.sleep(3)
-#     return "Много данных!!!"
-
-@router.post('/pereval/')
+@router.post('/')
 async def submitData(pereval: Pereval_Schema, db: AsyncSession = Depends(get_async_session)):
     try:
         result = await db.execute(select(User).where(User.email == pereval.user.email))
         user = result.scalars().first()
         if user is None:
-            user = User(**pereval.user.dict())
+            # user = User(**pereval.user.dict()) deprecated
+            user = User(**pereval.user.model_dump())
         db_list_of_images = []
         for image in pereval.images:
             db_list_of_images.append(Image(image_url=str(image.image_url), title=image.title))
-        level = Level(**pereval.level.dict())
+        # level = Level(**pereval.level.dict()) deprecated
+        level = Level(**pereval.level.model_dump())
         pereval = Pereval(
             title=pereval.title,
             other_title=pereval.other_title,
@@ -54,16 +49,16 @@ async def submitData(pereval: Pereval_Schema, db: AsyncSession = Depends(get_asy
         raise HTTPException(status_code=400, detail=f'{exc}')
 
 
-@router.get('/pereval/{pereval_id}')
+@router.get('/{pereval_id}')
 @cache(expire=60)
-async def submitData(background_tasks: BackgroundTasks, pereval_id: int, db: AsyncSession = Depends(get_async_session)):
+async def submitData(pereval_id: int, db: AsyncSession = Depends(get_async_session)):
     db_pereval = await db.execute(
         select(Pereval, User, Level).join(User).join(
             Level).filter(Pereval.id == pereval_id))
     db_pereval = db_pereval.all()
 
     if db_pereval == []:
-        raise HTTPException(status_code=404, detail="Pereval not found")
+        raise HTTPException(status_code=404, detail={'state': 0, "message": "Pereval not found"})
 
     db_images = await db.execute(select(Image).filter(Image.pereval_id == pereval_id))
 
@@ -82,13 +77,13 @@ async def submitData(background_tasks: BackgroundTasks, pereval_id: int, db: Asy
         }
 
 
-@router.patch('/pereval/{pereval_id}')
+@router.patch('/{pereval_id}')
 async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession = Depends(get_async_session)):
     result = await db.execute(select(Pereval).filter(Pereval.id == pereval_id))
     db_pereval = result.scalars().first()
 
     if db_pereval is None:
-        raise HTTPException(status_code=404, detail="Pereval not found")
+        raise HTTPException(status_code=404, detail={'state': 0, "message": "Pereval not found"})
 
     if db_pereval.status == 'new':
         # Если отправляются картинки, удаляем все картинки добавленные раннее, и добавляем список новых
@@ -101,12 +96,11 @@ async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession 
             await db.execute(stmt)
             db.add_all(lst_image_obj)
 
-        pereval_dict = pereval.dict(exclude_none=True)
+        # pereval_dict = pereval.dict(exclude_none=True) deprecated
+        pereval_dict = pereval.model_dump(exclude_none=True)
 
         # Если отправляется level, обновляем level
         if pereval.level != None:
-            # stmt = update(Level).where(Level.id == db_pereval.scalars().one().level_id).values(
-            #     pereval_dict['level'])
             stmt = update(Level).where(Level.id == db_pereval.level_id).values(
                 pereval_dict['level'])
             await db.execute(stmt)
@@ -123,12 +117,12 @@ async def submitData(pereval_id: int, pereval: PerevalReplace, db: AsyncSession 
                             detail={'state': 0, "message": "Updating a pereval is possible only in new status!"})
 
 
-@router.get('/pereval/')
+@router.get('/')
 @cache(expire=60)
-async def submitData(user_email: str, db: AsyncSession = Depends(get_async_session)):
+async def submitData(user_email: str, limit: int = 10, offset: int = 0,  db: AsyncSession = Depends(get_async_session)):
     result = await db.execute(
         select(Pereval, User, Level).join(User).join(
-            Level).where(Pereval.user.has(User.email == user_email)))
+            Level).where(Pereval.user.has(User.email == user_email)).limit(limit).offset(offset))
     perevals = result.all()
 
     if perevals == []:
